@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🗺️ SF → LA → LV Road Trip</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+<!-- HERE Maps Core -->
+<link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css"/>
+<script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
+<script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
+<script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+<script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
+
+<style>
+:root{
+  --bg:#f1f5f9;--surface:#fff;--surface2:#f8fafc;
+  --border:#e2e8f0;--text:#1e293b;--muted:#64748b;--accent:#e85d04;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+header{background:#fff;border-bottom:2px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent)}
+.rpills{display:flex;align-items:center;gap:6px}
+.rpill{padding:3px 11px;border-radius:20px;font-size:11px;font-weight:800}
+.rpill.sf{background:#dbeafe;color:#1d4ed8}
+.rpill.la{background:#fef3c7;color:#b45309}
+.rpill.lv{background:#fee2e2;color:#b91c1c}
+.rarr{color:#cbd5e1;font-weight:900}
+.hstats{margin-left:auto;display:flex;gap:18px}
+.hstat{display:flex;flex-direction:column;align-items:center}
+.hstat-n{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1}
+.hstat-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:315px;background:#fff;border-right:2px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:2px 0 10px rgba(0,0,0,.05)}
+
+.sb-block{padding:9px 10px;border-bottom:1px solid var(--border)}
+.sb-block input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;font-size:12px;font-family:'Nunito',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .2s}
+.sb-block input:focus{border-color:var(--accent)}
+.sb-block input::placeholder{color:var(--muted)}
+
+.filter-row{display:flex;gap:5px;flex-wrap:wrap}
+.fbtn{padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Nunito',sans-serif}
+.fbtn.active,.fbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.vbtn{flex:1;padding:5px;border-radius:7px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s}
+.vbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.cat-chips{display:flex;flex-wrap:wrap;gap:4px;max-height:88px;overflow-y:auto}
+.cchip{padding:3px 7px;border-radius:12px;font-size:10px;font-weight:800;cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none}
+.cchip.on{opacity:1}.cchip.off{opacity:.28;filter:grayscale(.9)}
+
+/* DIRECTIONS */
+.dir-title{font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
+.dir-inp{display:flex;gap:5px;margin-bottom:5px}
+.dir-inp input{flex:1;border:1.5px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--text);background:#fff;outline:none}
+.dir-inp input:focus{border-color:var(--accent)}
+.loc-btn{padding:0 9px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--accent);font-size:13px;cursor:pointer;transition:all .15s}
+.loc-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dir-modes{display:flex;gap:4px}
+.mode-btn{flex:1;padding:6px 4px;border-radius:7px;border:none;font-size:10px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s}
+.mode-btn.car{background:#fef3c7;color:#b45309}.mode-btn.car:hover{background:#fde68a}
+.mode-btn.walk{background:#dcfce7;color:#16a34a}.mode-btn.walk:hover{background:#bbf7d0}
+.mode-btn.clr{background:#fee2e2;color:#dc2626}.mode-btn.clr:hover{background:#fecaca}
+
+/* LIST */
+.sb-list{flex:1;overflow-y:auto;padding:5px}
+.sb-list::-webkit-scrollbar{width:4px}
+.sb-list::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+.grp-hdr{padding:6px 8px 2px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.grp-cnt{background:var(--accent);color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:10px}
+.pi{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border-radius:8px;margin-bottom:2px;cursor:pointer;transition:all .15s;position:relative;border:1.5px solid transparent}
+.pi:hover{background:var(--surface2);border-color:var(--border)}
+.pi.active-item{background:#fff7ed;border-color:#fed7aa}
+.pi.visited{background:#f0fdf4;opacity:.7}
+.pi.removed{display:none}
+.pdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;box-shadow:0 0 0 2px #fff}
+.pinfo{flex:1;min-width:0}
+.pname{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmeta{font-size:10px;color:var(--muted);margin-top:1px;font-weight:600}
+.pbtns{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.pi:hover .pbtns,.pi.active-item .pbtns{opacity:1}
+.pbtn{width:22px;height:22px;border-radius:5px;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.pbtn.v{background:#dcfce7;color:#16a34a}.pbtn.v:hover{background:#bbf7d0}
+.pbtn.d{background:#dbeafe;color:#1d4ed8}.pbtn.d:hover{background:#bfdbfe}
+.pbtn.r{background:#fee2e2;color:#dc2626}.pbtn.r:hover{background:#fecaca}
+.vbadge{position:absolute;top:7px;right:6px;font-size:9px;background:#dcfce7;color:#16a34a;padding:1px 5px;border-radius:4px;font-weight:800}
+.empty-msg{text-align:center;padding:28px 14px;color:var(--muted);font-size:13px;line-height:1.7;font-weight:600}
+
+/* MAP */
+#mapDiv{flex:1;position:relative}
+#hereMap{width:100%;height:100%}
+
+/* POPUP CARD */
+.map-card{position:absolute;bottom:16px;left:16px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.15);border:1.5px solid var(--border);min-width:240px;max-width:300px;z-index:500;display:none}
+.map-card.show{display:block}
+.mc-close{position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);line-height:1}
+.mc-cat{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.mc-name{font-size:15px;font-weight:900;margin-bottom:2px;color:var(--text)}
+.mc-city{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.mc-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;font-weight:600}
+.mc-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mc-btn{padding:6px 10px;border-radius:7px;border:none;font-size:11px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s}
+.mc-v{background:#dcfce7;color:#16a34a}.mc-v:hover{background:#bbf7d0}
+.mc-d{background:#dbeafe;color:#1d4ed8}.mc-d:hover{background:#bfdbfe}
+.mc-gm{background:#fef3c7;color:#b45309}.mc-gm:hover{background:#fde68a}
+.mc-r{background:#fee2e2;color:#dc2626}.mc-r:hover{background:#fecaca}
+
+/* LEGEND */
+.map-legend{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.97);border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;z-index:400;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.leg-t{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+.leg-i{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:10px;font-weight:700;color:var(--text)}
+.leg-d{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* HERE UI overrides */
+.H_ib_body{font-family:'Nunito',sans-serif!important}
+.H_l_left{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🗺️ ROADTRIP USA</div>
+  <div class="rpills">
+    <div class="rpill sf">🌁 San Francisco</div>
+    <div class="rarr">→</div>
+    <div class="rpill la">🌴 Los Angeles</div>
+    <div class="rarr">→</div>
+    <div class="rpill lv">🎰 Las Vegas</div>
+  </div>
+  <div class="hstats">
+    <div class="hstat"><div class="hstat-n" id="s-total" style="color:var(--text)">0</div><div class="hstat-l">Toplam</div></div>
+    <div class="hstat"><div class="hstat-n" id="s-visited" style="color:#16a34a">0</div><div class="hstat-l">Gezildi ✓</div></div>
+    <div class="hstat"><div class="hstat-n" id="s-removed" style="color:#dc2626">0</div><div class="hstat-l">Silindi ✗</div></div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sb-block">
+      <input id="search" placeholder="🔍 Yer ara..." oninput="renderList()">
+    </div>
+    <div class="sb-block">
+      <div class="filter-row" id="cityBtns">
+        <button class="fbtn active" onclick="setCF('all',this)">Tümü</button>
+        <button class="fbtn" onclick="setCF('SF',this)">🌁 SF</button>
+        <button class="fbtn" onclick="setCF('LA',this)">🌴 LA</button>
+        <button class="fbtn" onclick="setCF('LV',this)">🎰 Vegas</button>
+        <button class="fbtn" onclick="setCF('ROAD',this)">🛣️ Yol</button>
+      </div>
+    </div>
+    <div class="sb-block">
+      <div class="filter-row">
+        <button class="vbtn active" id="vf-all" onclick="setVF('all')">Tümü</button>
+        <button class="vbtn" id="vf-pending" onclick="setVF('pending')">Bekliyor</button>
+        <button class="vbtn" id="vf-visited" onclick="setVF('visited')">Gezildi ✓</button>
+      </div>
+    </div>
+    <div class="sb-block">
+      <div class="cat-chips" id="catChips"></div>
+    </div>
+
+    <!-- Yol Tarifi -->
+    <div class="sb-block">
+      <div class="dir-title">🧭 Yol Tarifi</div>
+      <div class="dir-inp">
+        <input id="dirFrom" placeholder="Başlangıç...">
+        <button class="loc-btn" onclick="useMyLoc()" title="Konumumu kullan">📍</button>
+      </div>
+      <div class="dir-inp">
+        <input id="dirTo" placeholder="Varış noktası...">
+      </div>
+      <div class="dir-modes">
+        <button class="mode-btn car" onclick="calcRoute('car')">🚗 Araba</button>
+        <button class="mode-btn walk" onclick="calcRoute('pedestrian')">🚶 Yürüyüş</button>
+        <button class="mode-btn clr" onclick="clearRoute()">✕ Temizle</button>
+      </div>
+    </div>
+
+    <div class="sb-list" id="placeList"></div>
+  </div>
+
+  <div id="mapDiv">
+    <div id="hereMap"></div>
+
+    <!-- Info card -->
+    <div class="map-card" id="mapCard">
+      <button class="mc-close" onclick="closeCard()">×</button>
+      <div class="mc-cat" id="mc-cat"></div>
+      <div class="mc-name" id="mc-name"></div>
+      <div class="mc-city" id="mc-city"></div>
+      <div class="mc-desc" id="mc-desc"></div>
+      <div class="mc-btns">
+        <button class="mc-btn mc-v" id="mc-v" onclick="markVActive()">✓ Gezildi</button>
+        <button class="mc-btn mc-d" onclick="dirToActive()">🧭 Yol Tarifi</button>
+        <button class="mc-btn mc-gm" onclick="openGMActive()">🗺️ Google Maps</button>
+        <button class="mc-btn mc-r" onclick="markRActive()">✗ Sil</button>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="map-legend" id="legend"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// CATEGORIES
+// ═══════════════════════════════════════
+const CATS={
+  outlet:   {label:'Outlet & AVM',        color:'#e85d04',emoji:'🛍️'},
+  alisveris:{label:'Alışveriş',            color:'#0284c7',emoji:'🛒'},
+  market:   {label:'Büyük Market',         color:'#059669',emoji:'🏪'},
+  muzik:    {label:'Müzik & Konser',       color:'#7c3aed',emoji:'🎵'},
+  gece:     {label:'Gece & Kulüp',         color:'#db2777',emoji:'🌙'},
+  doga:     {label:'Doğa & Manzara',       color:'#16a34a',emoji:'🏔️'},
+  kultur:   {label:'Kültür & Müze',        color:'#2563eb',emoji:'🏛️'},
+  tarih:    {label:'Tarihi Yer',           color:'#d97706',emoji:'🏺'},
+  eglence:  {label:'Eğlence & Park',       color:'#dc2626',emoji:'🎢'},
+  sanat:    {label:'Sanat & Galeri',       color:'#ea580c',emoji:'🎨'},
+  spor:     {label:'Spor & Aktivite',      color:'#65a30d',emoji:'⚽'},
+  gizli:    {label:'Turistlerin Bilmediği',color:'#9333ea',emoji:'💎'},
+};
+
+// ═══════════════════════════════════════
+// PLACES DATA
+// ═══════════════════════════════════════
+const RAW=[
+['Golden Gate Bridge','SF','kultur',37.8199,-122.4783,'Dünyanın en ikonik asma köprüsü'],
+['Alcatraz Island','SF','tarih',37.8267,-122.423,'Ünlü federal hapisane adası'],
+['SFMOMA','SF','sanat',37.7857,-122.4011,'7 katlı modern sanat müzesi'],
+['de Young Museum','SF','sanat',37.7714,-122.4686,'Golden Gate Park sanat müzesi'],
+['California Academy of Sciences','SF','kultur',37.7699,-122.4661,'Akvaryum+planetaryum+müze'],
+['Asian Art Museum','SF','sanat',37.7796,-122.4162,'18.000+ Asya sanat eseri'],
+['Exploratorium Pier 15','SF','kultur',37.8015,-122.3976,'İnteraktif bilim müzesi'],
+['Legion of Honor','SF','sanat',37.7822,-122.5014,'Lincoln Park Avrupa sanatı'],
+['Walt Disney Family Museum','SF','kultur',37.799,-122.4568,'Presidio\'da Disney müzesi'],
+['Cable Car Museum','SF','tarih',37.7949,-122.4116,'SF kablo araba tarihi, ücretsiz'],
+['Beat Museum','SF','kultur',37.7998,-122.407,'Kerouac ve Beat Generation'],
+['Maritime National Historical Park','SF','tarih',37.8076,-122.4218,'Tarihi gemiler'],
+['Musee Mecanique Pier 45','SF','eglence',37.8085,-122.4162,'Antika arcade makineleri'],
+['Twin Peaks','SF','doga',37.7544,-122.4477,'360° panoramik şehir manzarası'],
+['Lands End Trail','SF','doga',37.7788,-122.5134,'Okyanus kıyısı patikası'],
+['Baker Beach','SF','doga',37.7934,-122.484,'Golden Gate manzaralı plaj'],
+['Ocean Beach SF','SF','doga',37.759,-122.5107,'SF\'nin en uzun plajı'],
+['Dolores Park','SF','doga',37.7596,-122.4269,'Mission\'ın kalbi, piknik'],
+['Alamo Square Park','SF','doga',37.7761,-122.4342,'Painted Ladies Victorian evler'],
+['Sutro Baths Ruins','SF','doga',37.7789,-122.5134,'1896 havuz harabeleri'],
+['Muir Woods','SF','doga',37.8912,-122.5718,'Dev sekoya ağaçları'],
+['Mount Tamalpais','SF','doga',37.9235,-122.5963,'Körfez manzaralı dağ'],
+['Point Reyes National Seashore','SF','doga',38.0692,-122.8692,'Dramatik uçurumlar, fener'],
+['Marin Headlands','SF','doga',37.8325,-122.5001,'Golden Gate karşı manzarası'],
+['Crissy Field','SF','doga',37.8035,-122.4619,'Restore edilmiş kıyı şeridi'],
+['16th Avenue Tiled Steps','SF','gizli',37.7562,-122.4716,'163 basamak mozaik sanat'],
+['Seward Street Slides','SF','gizli',37.7584,-122.4424,'Beton kaydıraklar, ücretsiz'],
+['Wave Organ','SF','gizli',37.8095,-122.4371,'Dalgalardan müzik yaratan enstalasyon'],
+['Balmy Alley Murals','SF','sanat',37.7533,-122.4127,'Mission sokak sanatı kapıları'],
+['Clarion Alley','SF','sanat',37.7639,-122.4229,'Politik muraller, Mission'],
+['Coit Tower','SF','sanat',37.8023,-122.4058,'WPA freskleri, panoramik kule'],
+['Fisherman\'s Wharf','SF','eglence',37.808,-122.4177,'Deniz ürünleri, iskele'],
+['Pier 39','SF','eglence',37.8087,-122.4098,'Deniz aslanları, karnaval'],
+['Ghirardelli Square','SF','eglence',37.8058,-122.4238,'Eski çikolata fabrikası'],
+['Lombard Street','SF','eglence',37.8021,-122.4196,'En kıvrımlı sokak'],
+['Chinatown SF','SF','kultur',37.7941,-122.4078,'ABD\'nin en eski Chinatown\'ı'],
+['Haight-Ashbury','SF','tarih',37.7694,-122.4468,'1960\'lar hippie merkezi'],
+['Castro District','SF','kultur',37.7609,-122.435,'LGBTQ+ kültür merkezi'],
+['Mission District','SF','kultur',37.7599,-122.4148,'Latino kültürü, sokak sanatı'],
+['North Beach SF','SF','kultur',37.8006,-122.4093,'İtalyan kültürü, City Lights'],
+['Embarcadero','SF','doga',37.7956,-122.3935,'Körfez boyunca yürüyüş'],
+['Palace of Fine Arts','SF','tarih',37.8029,-122.4483,'1915 Pantheon tarzı yapı'],
+['Transamerica Pyramid','SF','tarih',37.7952,-122.4028,'SF\'nin simgesi gökdelen'],
+['City Hall SF','SF','tarih',37.7793,-122.4193,'Beaux-Arts altın kubbe'],
+['Presidio of SF','SF','doga',37.7989,-122.4662,'1491 dönüm ulusal park'],
+['Angel Island','SF','doga',37.8607,-122.434,'Körfez adası, tarihi istasyon'],
+['Fort Funston','SF','doga',37.7147,-122.4995,'Yamaç paraşütü, kum tepeleri'],
+['Sausalito','SF','doga',37.859,-122.4852,'Sanatçı kasabası, su üstü evler'],
+['The Fillmore','SF','muzik',37.7842,-122.433,'Efsanevi konser salonu'],
+['Great American Music Hall','SF','muzik',37.7835,-122.4228,'1907\'den beri müzik'],
+['The Independent','SF','muzik',37.7782,-122.4397,'Divisadero indie konser'],
+['DNA Lounge','SF','gece',37.7756,-122.4115,'24 saat SoMa kulübü'],
+['Vessel Nightclub SF','SF','gece',37.775,-122.4117,'SoMa elektronik kulüp'],
+['Westfield SF Centre','SF','outlet',37.784,-122.4083,'9 katlı AVM 170+ mağaza'],
+['Union Square Shopping','SF','alisveris',37.7879,-122.4075,'Neiman Marcus, Tiffany, LV'],
+['Haight Street Vintage','SF','alisveris',37.7694,-122.4468,'Vintage secondhand mağazalar'],
+['City Lights Bookstore','SF','sanat',37.7978,-122.4065,'Beat Generation kitapçısı 1953'],
+['Whole Foods Market SF','SF','market',37.7733,-122.4151,'Premium organik market'],
+["Trader Joe's Masonic SF",'SF','market',37.7819,-122.4454,'Ucuz kaliteli ürünler'],
+['Rainbow Grocery Cooperative','SF','market',37.7657,-122.4123,'Kooperatif organik market'],
+['Ferry Building Marketplace','SF','market',37.7955,-122.3937,'Pazar yeri, gurme mağazalar'],
+['Costco SF','SF','market',37.7287,-122.4752,'Dev toptan market'],
+['Oracle Park Giants','SF','spor',37.7786,-122.3893,'MLB Giants stadyumu'],
+['Chase Center Warriors','SF','spor',37.768,-122.3877,'NBA Warriors arena'],
+['Stanford University','SF','tarih',37.4275,-122.1697,'Hoover Tower, kampüs'],
+['Computer History Museum','SF','tarih',37.4143,-122.0777,'Silikon Vadisi tarihi'],
+['Winchester Mystery House','SF','gizli',37.3184,-121.9511,'160 oda, gizemli labirent'],
+['Napa Valley','SF','gizli',38.5025,-122.2654,'Dünyaca ünlü şarap bölgesi'],
+['Muir Beach','SF','doga',37.867,-122.5738,'Gizli küçük plaj, Marin'],
+['Stinson Beach','SF','doga',37.8985,-122.6416,'Dramatik manzaralı uzun plaj'],
+['Bolinas','SF','gizli',37.909,-122.6857,'Tabelaları sökülen gizli kasaba'],
+['UC Berkeley Campus','SF','tarih',37.8724,-122.2595,'Dünyaca ünlü üniversite'],
+['Oakland Museum of California','SF','kultur',37.798,-122.2655,'CA sanatı ve tarihi'],
+['Yosemite Valley','SF','doga',37.7459,-119.5332,'Muhteşem milli park'],
+['Lake Tahoe','SF','doga',39.0968,-120.0324,'Kristal berrak dağ gölü'],
+['Bodie Ghost Town','SF','tarih',38.2121,-119.007,'1877 altın madeni hayalet kasabası'],
+// YOL SF→LA
+['Half Moon Bay','ROAD','doga',37.4636,-122.4286,'Okyanus kıyısı, balkabağı çiftlikleri'],
+['Santa Cruz Beach Boardwalk','ROAD','eglence',36.9641,-122.0167,'Tarihi sahil lunapark'],
+['Monterey Bay Aquarium','ROAD','kultur',36.6185,-121.9018,'Dünyanın en iyi akvaryumlarından'],
+['17-Mile Drive Pebble Beach','ROAD','doga',36.5836,-121.9625,'Sahil yolu, golf sahaları'],
+['Carmel-by-the-Sea','ROAD','tarih',36.5552,-121.9233,'Peri masalı köy'],
+['Point Lobos State Reserve','ROAD','doga',36.5154,-121.9488,'Spektaküler sahil koruma alanı'],
+['Big Sur Coast','ROAD','doga',36.2704,-121.8077,'Dünyanın en dramatik sahil yolu'],
+['McWay Falls','ROAD','doga',36.1566,-121.672,'Okyanusa düşen şelale'],
+['Bixby Creek Bridge','ROAD','doga',36.3714,-121.9014,'Dünyaca ünlü köprü'],
+['Hearst Castle','ROAD','tarih',35.6851,-121.1678,'William Randolph Hearst sarayı'],
+['Elephant Seal Vista Point','ROAD','doga',35.6644,-121.2558,'Binlerce fil foku'],
+['Morro Bay Rock','ROAD','doga',35.3658,-120.8527,'Dev volkanik kaya'],
+['Pismo Beach','ROAD','doga',35.1428,-120.6414,'Kum tepeleri, kamp alanı'],
+['Santa Barbara Mission','ROAD','tarih',34.4425,-119.7114,'Misyonların Kraliçesi 1786'],
+['Santa Barbara State Street','ROAD','alisveris',34.4208,-119.7032,'Butikler, İspanyol mimarisi'],
+['Camarillo Premium Outlets','ROAD','outlet',34.2172,-119.0365,'160+ outlet mağazası'],
+['Malibu Surfrider Beach','ROAD','spor',34.0363,-118.6786,'Dünyanın ünlü sörf plajı'],
+['El Matador State Beach','ROAD','doga',34.0388,-118.8772,'Gizli mağaralı plaj'],
+['Malibu Creek State Park','ROAD','doga',34.1009,-118.7213,'MASH dizi lokasyonu'],
+['Solvang','ROAD','kultur',34.5958,-120.1376,'Danimarkalı mimari, şarap'],
+['Jalama Beach','ROAD','gizli',34.5117,-120.5014,'Gizli tenha plaj'],
+['Refugio State Beach','ROAD','doga',34.462,-120.0673,'Palmiyeli kamp plajı'],
+['Pioneertown','ROAD','tarih',34.1682,-116.4693,'1940 western film seti'],
+['Salvation Mountain','ROAD','sanat',33.2522,-115.4716,'Çöldeki devasa boyalı dağ'],
+['Integratron Landers','ROAD','gizli',34.292,-116.421,'UFO tarihli ses şifa kubbesi'],
+['Calico Ghost Town','ROAD','tarih',34.9491,-116.8685,'1880 gümüş madeni kasabası'],
+['Route 66 Barstow','ROAD','tarih',34.8958,-116.974,'Tarihi Route 66 kasabası'],
+['Mojave National Preserve','ROAD','doga',35.0756,-115.61,'Kum tepeleri, lav tüpleri'],
+['Amboy Crater','ROAD','doga',34.5627,-115.7832,'Volkanik krater, Route 66'],
+['Seven Magic Mountains','ROAD','sanat',35.9926,-115.1963,'Çölde dev fosforlu taş kuleler'],
+['Primm Valley Outlets','ROAD','outlet',35.6066,-115.3898,'Nevada sınırında outlet'],
+['Alien Research Center Baker','ROAD','gizli',35.2657,-116.0711,'Route 127 UFO temalı mağaza'],
+['Valley of Fire State Park','ROAD','doga',36.4735,-114.5167,'Kırmızı kaya formasyonları'],
+['Hoover Dam','ROAD','tarih',36.016,-114.7378,'1936 dev baraj mühendislik harikası'],
+['Wigwam Motel','ROAD','tarih',34.0647,-117.2706,'Tipi şeklinde tarihi motel'],
+['Temecula Wine Country','ROAD','gizli',33.4936,-117.1484,'Balonla şarap turu'],
+// LOS ANGELES
+['Getty Center','LA','sanat',34.078,-118.4741,'Dünya sanat müzesi, ücretsiz'],
+['LACMA','LA','sanat',34.0639,-118.3592,'Batı ABD\'nin en büyük sanat müzesi'],
+['The Broad Museum','LA','sanat',34.0546,-118.25,'Koons ve Basquiat'],
+['Natural History Museum LA','LA','kultur',34.017,-118.2882,'Dinozor kafatası'],
+['California Science Center','LA','kultur',34.0155,-118.2859,'Space Shuttle Endeavour'],
+['Griffith Observatory','LA','kultur',34.1184,-118.3004,'Yıldız gözlemi, LA manzarası'],
+['Getty Villa Malibu','LA','sanat',34.0451,-118.5647,'Antik Yunan ve Roma sanatı'],
+['Museum of Jurassic Technology','LA','gizli',34.0024,-118.3939,'LA\'nın en gizemli müzesi'],
+['Petersen Automotive Museum','LA','kultur',34.0616,-118.3614,'Araba tarihi ve kültürü'],
+['Grammy Museum','LA','muzik',34.0428,-118.2668,'Müzik tarihi, altın plaklar'],
+['La Brea Tar Pits','LA','tarih',34.0638,-118.3557,'Doğal zift çukurları'],
+['Autry Museum West','LA','tarih',34.1476,-118.2827,'Amerikan Batı tarihi'],
+['Japanese American Museum','LA','tarih',34.0503,-118.2398,'Little Tokyo tarihi'],
+['Skirball Cultural Center','LA','kultur',34.1043,-118.4796,'Yahudi kültürü'],
+['Watts Towers','LA','sanat',33.9397,-118.2413,'33 yılda inşa naif sanat'],
+['Hollyhock House','LA','tarih',34.106,-118.2876,'Frank Lloyd Wright, UNESCO'],
+['Angels Flight Railway','LA','tarih',34.0516,-118.2497,'1901\'den en kısa demiryolu'],
+['Bradbury Building','LA','tarih',34.0506,-118.2479,'1893 Blade Runner lokasyonu'],
+['Olvera Street','LA','tarih',34.0584,-118.2399,'LA\'nın doğduğu tarihi yol'],
+['Hollywood Forever Cemetery','LA','gizli',34.0899,-118.3266,'Açık hava sinema, ünlü mezarlar'],
+['Museum of Death Hollywood','LA','gizli',34.0928,-118.3427,'Ölüm ve suç tarihi müzesi'],
+['Last Bookstore LA','LA','gizli',34.0454,-118.252,'Muazzam eski kitapçı'],
+['Grand Central Market LA','LA','market',34.051,-118.249,'1917\'den dev yemek pazarı'],
+['Griffith Park','LA','doga',34.1366,-118.2942,'ABD\'nin en büyük şehir parkı'],
+['Runyon Canyon','LA','doga',34.1028,-118.3497,'Hollywood Hills yürüyüşü'],
+['Echo Park Lake','LA','doga',34.0784,-118.2605,'Lotus çiçekleri, pedalo'],
+['Topanga State Park','LA','doga',34.0958,-118.5898,'Santa Monica Dağları'],
+['Vasquez Rocks','LA','doga',34.4862,-118.3199,'Star Trek lokasyonu'],
+['Antelope Valley Poppy','LA','doga',34.7279,-118.4035,'İlkbaharda turuncu tarla'],
+['Eaton Canyon','LA','doga',34.1731,-118.0804,'Pasadena şelale yürüyüşü'],
+['Point Dume Malibu','LA','doga',34.0001,-118.8075,'Kaya burnu, yunus ve balina'],
+['Descanso Gardens','LA','doga',34.2024,-118.2105,'Kamelya ormanı, japon bahçesi'],
+['South Coast Botanic Garden','LA','doga',33.7929,-118.3682,'Büyük botanik bahçe'],
+['Barnsdall Art Park','LA','sanat',34.104,-118.2897,'Hollyhock House ve galeri'],
+['Exposition Park Rose Garden','LA','doga',34.0178,-118.2858,'15.000 gül bitkisi, ücretsiz'],
+['Universal Studios Hollywood','LA','eglence',34.1381,-118.3534,'Film stüdyo turu'],
+['Disneyland Anaheim','LA','eglence',33.8121,-117.919,'Dünyanın ilk Disneyland\'ı'],
+['Disney California Adventure','LA','eglence',33.8094,-117.9186,'Avengers, Coco parkı'],
+['Six Flags Magic Mountain','LA','eglence',34.4237,-118.5971,'19 coaster, hız cenneti'],
+["Knott's Berry Farm",'LA','eglence',33.8442,-117.9994,"Amerika'nın ilk temalı parkı"],
+['Warner Bros Studio Tour','LA','eglence',34.148,-118.3386,'Harry Potter setleri'],
+['Hollywood Sign Hike','LA','doga',34.1341,-118.3215,'Tabelaya yürüyüş rotası'],
+['Walk of Fame Hollywood','LA','tarih',34.1016,-118.3411,'2700+ yıldız'],
+['TCL Chinese Theatre','LA','tarih',34.1022,-118.3407,'El ve ayak izleri'],
+['Dolby Theatre','LA','tarih',34.1014,-118.3392,'Oscar törenleri mekanı'],
+['Venice Beach Boardwalk','LA','eglence',33.985,-118.473,'Sokak sanatçıları, spor'],
+['Santa Monica Pier','LA','eglence',34.0088,-118.4982,'Route 66 sonu, lunapark'],
+['The Grove LA','LA','alisveris',34.0716,-118.3552,'Açık hava AVM, tramvay'],
+['Rodeo Drive Beverly Hills','LA','alisveris',34.0694,-118.3992,'Dünyanın en pahalı caddesi'],
+['Melrose Avenue','LA','alisveris',34.0836,-118.3636,'Vintage, tasarımcı mağazalar'],
+['Abbot Kinney Blvd Venice','LA','alisveris',33.9922,-118.4726,'LA\'nın en havalı caddesi'],
+['Citadel Outlets LA','LA','outlet',33.9867,-118.1636,'130+ outlet, kale temalı'],
+['Desert Hills Premium Outlets','LA','outlet',33.9572,-116.7453,'180+ lüks marka outlet'],
+['Ontario Mills','LA','outlet',34.0633,-117.5567,'200+ mağaza dev outlet'],
+['Beverly Center','LA','outlet',34.075,-118.37,'100+ mağaza BH yakını'],
+['Westfield Century City','LA','outlet',34.0565,-118.4176,'Lüks açık hava AVM'],
+['Americana at Brand Glendale','LA','outlet',34.1507,-118.256,'Glendale lüks AVM'],
+['Hollywood Bowl','LA','muzik',34.1123,-118.3391,'İkonik açık hava amfi tiyatro'],
+['The Troubadour WeHo','LA','muzik',34.0797,-118.3888,'West Hollywood canlı müzik'],
+['Whisky a Go Go','LA','muzik',34.0905,-118.388,'1964\'ten Sunset Strip ikonu'],
+['Greek Theatre Griffith','LA','muzik',34.1273,-118.3002,'Açık hava yaz konserleri'],
+['Avalon Hollywood','LA','gece',34.101,-118.3296,'Tarihi ballroom EDM kulübü'],
+['Exchange LA','LA','gece',34.0444,-118.2526,'Downtown muhteşem bina kulüp'],
+['No Vacancy Hollywood','LA','gece',34.1009,-118.3291,'Speakeasy tarzı gizli bar'],
+['Crypto.com Arena','LA','muzik',34.043,-118.2673,'Lakers, Clippers, konserler'],
+['SoFi Stadium','LA','spor',33.9534,-118.3392,'LA Rams modern NFL stadı'],
+['Dodger Stadium','LA','spor',34.0739,-118.24,'MLB ikonik stadyum'],
+['Whole Foods Fairfax LA','LA','market',34.0743,-118.3616,'En büyük Whole Foods LA'],
+['Erewhon Market','LA','market',34.0841,-118.3816,'LA\'nın en trendy süpermarketi'],
+['H Mart Korean Market LA','LA','market',34.0543,-118.2913,'Dev Kore süpermarketi'],
+['Mitsuwa Marketplace','LA','market',34.0005,-118.4285,'Dev Japon süpermarketi'],
+['Aquarium of the Pacific','LA','kultur',33.7617,-118.1964,'Long Beach akvaryum'],
+['Queen Mary Long Beach','LA','tarih',33.7521,-118.1893,'1936 efsanevi gemi-otel'],
+['Laguna Beach Art Galleries','LA','sanat',33.5422,-117.7831,'100+ galeri, sanatçı kolonisi'],
+['Catalina Island','LA','doga',33.387,-118.4162,'Tekneyle ada, bison sürüsü'],
+['Wayfarers Chapel Palos Verdes','LA','tarih',33.7444,-118.3862,'Camdan yapılmış şapel'],
+['Sunken City San Pedro','LA','gizli',33.7059,-118.3009,'1929\'dan batmış mahalle'],
+['Malibu Zuma Beach','LA','doga',34.0153,-118.8272,'Malibu\'nun en büyük plajı'],
+['Forest Lawn Glendale','LA','gizli',34.1738,-118.2455,'Michelangelo kopyaları müzesi'],
+// LAS VEGAS
+['Bellagio Fountains','LV','eglence',36.1126,-115.1767,'Su-ışık gösterisi, ücretsiz'],
+['Bellagio Conservatory','LV','sanat',36.1129,-115.1768,'Mevsimsel çiçek sergisi'],
+['The Venetian LV','LV','eglence',36.1213,-115.1697,'Venedik kanalları, gondol turu'],
+['Caesars Palace','LV','eglence',36.1162,-115.1744,'Roma temalı ikonik resort'],
+['MGM Grand LV','LV','eglence',36.1024,-115.1698,'KÀ Cirque du Soleil'],
+['Aria Resort','LV','eglence',36.1072,-115.1783,'Modern CityCenter kompleksi'],
+['Cosmopolitan LV','LV','gece',36.1094,-115.1742,'En hipster Vegas oteli'],
+['Wynn Las Vegas','LV','eglence',36.1265,-115.1657,'Lüks botanik bahçe resort'],
+['High Roller Wheel','LV','eglence',36.1194,-115.1666,'167m dünyanın en büyük ferris'],
+['New York-New York Hotel','LV','eglence',36.1025,-115.1744,'Statue of Liberty kopyası'],
+['Luxor Pyramid LV','LV','eglence',36.0954,-115.1762,'Gökyüzüne uzanan ışın'],
+['Mandalay Bay','LV','eglence',36.0912,-115.1744,'Shark Reef akvaryum'],
+['Paris Las Vegas','LV','eglence',36.1122,-115.1711,'Eyfel Kulesi kopyası'],
+['Treasure Island TI','LV','eglence',36.124,-115.1705,'Korsan temalı resort'],
+['Flamingo Las Vegas','LV','eglence',36.1167,-115.17,'İlk modern Vegas oteli 1946'],
+['Mob Museum','LV','tarih',36.1722,-115.1423,'Organize suç tarihi müzesi'],
+['Neon Museum','LV','sanat',36.1794,-115.135,'Eski neon tabelalar müzesi'],
+['Nevada State Museum LV','LV','tarih',36.1295,-115.1588,'Nevada tarihi, mamut iskeleti'],
+['Springs Preserve','LV','kultur',36.1676,-115.1955,'Çevre müzesi, bahçeler'],
+['Atomic Testing Museum','LV','tarih',36.1225,-115.1419,'Nükleer test tarihi'],
+['The Arts Factory LV','LV','sanat',36.1636,-115.1492,'Yerel sanat stüdyoları'],
+['Container Park LV','LV','eglence',36.1667,-115.1421,'Konteynırdan boutique alışveriş'],
+['Fremont Street Experience','LV','eglence',36.17,-115.142,'Dev LED kanopi canlı müzik'],
+['Area15 Las Vegas','LV','sanat',36.1028,-115.1668,'Immersive sanat kompleksi'],
+['Omega Mart Area15','LV','sanat',36.1025,-115.1672,'Sürrealist interaktif sanat'],
+['Pinball Hall of Fame','LV','gizli',36.0799,-115.1428,'200+ pinball makineleri'],
+['Red Rock Canyon','LV','doga',36.1345,-115.4279,'Kırmızı kaya, 30 dk mesafe'],
+['Floyd Lamb Park','LV','doga',36.3032,-115.2374,'Tavus kuşları, göl parkı'],
+['Wetlands Park LV','LV','doga',36.0741,-115.0407,'Kuş gözlem, doğa yürüyüşü'],
+['Mount Charleston','LV','doga',36.2719,-115.6831,'Kayak merkezi ve orman'],
+['Lake Las Vegas','LV','doga',36.0987,-114.9579,'Yapay göl, lüks resort'],
+['Ethel M Chocolate Factory','LV','gizli',36.0268,-114.9706,'Mars çikolata fabrikası ücretsiz'],
+['Guardian Angel Cathedral LV','LV','tarih',36.1205,-115.1682,'Strip\'teki gamblerların kilisesi'],
+['El Cortez Hotel LV','LV','tarih',36.1714,-115.1378,'Vegas\'ın en eski lokasyonu 1941'],
+['Golden Nugget LV','LV','eglence',36.1705,-115.1432,'Köpek balığı havuzlu yüzme'],
+['XS Nightclub Encore','LV','gece',36.1281,-115.1659,'Dünyanın en çok kazanan kulübü'],
+['Omnia Nightclub Caesars','LV','gece',36.1162,-115.1743,'Dev avize, uluslararası DJ'],
+['Hakkasan MGM','LV','gece',36.1024,-115.1698,'Çin restoranı+kulüp'],
+['Marquee Cosmopolitan','LV','gece',36.1094,-115.1742,'Strip manzaralı havuz kulübü'],
+['Drai\'s Beachclub LV','LV','gece',36.1098,-115.1758,'Rooftop açık hava partileri'],
+['Zouk Nightclub Resorts World','LV','gece',36.1348,-115.1617,'Singapur markalı kulüp'],
+['T-Mobile Arena LV','LV','muzik',36.1028,-115.1783,'Golden Knights, konserler'],
+['Allegiant Stadium','LV','spor',36.0908,-115.1838,'Las Vegas Raiders NFL'],
+['Brooklyn Bowl LV','LV','muzik',36.1215,-115.1673,'Bowling+canlı müzik'],
+['Las Vegas Premium Outlets North','LV','outlet',36.1987,-115.1437,'175+ outlet mağazası'],
+['Las Vegas Premium Outlets South','LV','outlet',36.08,-115.1727,'140+ outlet Strip yakını'],
+['Forum Shops Caesars','LV','alisveris',36.116,-115.1735,'Roma temalı lüks alışveriş'],
+['Crystals CityCenter','LV','alisveris',36.108,-115.1785,'Bulgari, Louis Vuitton, Prada'],
+['Miracle Mile Planet Hollywood','LV','alisveris',36.1103,-115.1707,'170+ mağaza'],
+['Downtown Summerlin','LV','outlet',36.178,-115.338,'Büyük açık hava AVM'],
+['Smith\'s Food Drug LV','LV','market',36.131,-115.149,'Dev Kroger süpermarket'],
+['Whole Foods Las Vegas','LV','market',36.1175,-115.1714,'Strip yakını organik market'],
+['Total Wine More LV','LV','market',36.1024,-115.1684,'8000+ şarap çeşidi'],
+['Topgolf Las Vegas','LV','spor',36.1012,-115.1697,'Golf eğlence, Strip manzarası'],
+['Indoor Skydiving iFly Vegas','LV','eglence',36.1204,-115.1699,'Tünel içinde uçuş'],
+['SlotZilla Zipline Fremont','LV','eglence',36.17,-115.142,'Fremont Street zipline'],
+['Las Vegas Motor Speedway','LV','spor',36.272,-115.0101,'NASCAR yarışları'],
+['Zion National Park','LV','doga',37.2982,-113.0263,'2.5 saat, kırmızı cennet'],
+['Bryce Canyon','LV','doga',37.6431,-112.1673,'3 saat, turuncu hoodoo ormanı'],
+['Grand Canyon South Rim','LV','doga',36.0544,-112.1401,'4 saat, insanlığın harikası'],
+['Antelope Canyon','LV','doga',36.8619,-111.3743,'Dünyaca ünlü slot canyon'],
+['Horseshoe Bend Page AZ','LV','doga',36.8791,-111.51,'Colorado nehri at nalı kavsi'],
+['Death Valley Furnace Creek','LV','doga',36.4619,-116.8672,'Dünyanın en sıcak yeri'],
+['Badwater Basin','LV','doga',36.2302,-116.7697,'Batı yarımkürenin en alçak noktası'],
+['Zabriskie Point Death Valley','LV','doga',36.42,-116.8119,'Altın sarısı kaya formasyonları'],
+['Cathedral Gorge State Park','LV','doga',37.803,-114.405,'Nevada kil sütunlar'],
+['Las Vegas Ghost Tours','LV','gizli',36.1717,-115.142,'Fremont Street hayalet turu'],
+['Extraterrestrial Highway NV','LV','gizli',37.25,-115.5,'UFO yolu, Little A\'Le\'Inn'],
+];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let places = RAW.map((r,i)=>({id:i,name:r[0],city:r[1],cat:r[2],lat:r[3],lng:r[4],desc:r[5],status:'pending'}));
+let cityFilter='all', viewFilter='all';
+let catFilters = new Set(Object.keys(CATS));
+let activeId = null;
+let hMap, platform, router, routingLayer=null;
+let markers = {};
+
+// ═══════════════════════════════════════
+// HERE MAPS INIT
+// ═══════════════════════════════════════
+// Free HERE API key (freemium tier — works in browser, 250k req/month)
+const HERE_KEY = 'YOUR_FREE_HERE_KEY';
+
+function initHere() {
+  try {
+    platform = new H.service.Platform({ apikey: HERE_KEY });
+    const defaultLayers = platform.createDefaultLayers();
+
+    hMap = new H.Map(
+      document.getElementById('hereMap'),
+      defaultLayers.vector.normal.map, // light mode
+      { zoom: 6, center: { lat: 36.5, lng: -118.5 } }
+    );
+
+    // Enable map interaction
+    new H.mapevents.Behavior(new H.mapevents.MapEvents(hMap));
+    H.ui.UI.createDefault(hMap, defaultLayers, 'tr-TR');
+
+    // Resize observer
+    window.addEventListener('resize', () => hMap.getViewPort().resize());
+
+    router = platform.getRoutingService(null, 8);
+    addAllMarkers();
+    drawRouteLine();
+  } catch(e) {
+    console.error('HERE init error:', e);
+    document.getElementById('hereMap').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#f8fafc;gap:16px;padding:30px;text-align:center">
+        <div style="font-size:48px">🗺️</div>
+        <div style="font-size:18px;font-weight:800;color:#1e293b">HERE Maps API Key Gerekli</div>
+        <div style="font-size:13px;color:#64748b;max-width:400px;line-height:1.7">
+          Haritayı görmek için ücretsiz HERE API key alın:<br><br>
+          <b>1.</b> <a href="https://developer.here.com" target="_blank" style="color:#e85d04">developer.here.com</a> adresine gidin<br>
+          <b>2.</b> Ücretsiz hesap oluşturun<br>
+          <b>3.</b> "JavaScript Maps" projesi oluşturun<br>
+          <b>4.</b> API Key\'i kopyalayın<br>
+          <b>5.</b> Bu dosyada <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px">YOUR_FREE_HERE_KEY</code> yerine yapıştırın
+        </div>
+        <div style="font-size:12px;color:#94a3b8">Aylık 250.000 istek ücretsiz · Kredi kartı gerekmez</div>
+        <a href="https://developer.here.com/sign-up" target="_blank" style="background:#e85d04;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:800;font-size:13px">Ücretsiz API Key Al →</a>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════
+// MARKERS
+// ═══════════════════════════════════════
+function svgDot(color, visited) {
+  const size = visited ? 14 : 10;
+  const stroke = visited ? `stroke="#22c55e" stroke-width="2.5"` : '';
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${size+4}" height="${size+4}"><circle cx="${(size+4)/2}" cy="${(size+4)/2}" r="${size/2}" fill="${color}" ${stroke}/></svg>`)}`;
+}
+
+function addAllMarkers() {
+  places.forEach(p => {
+    if(p.status==='removed') return;
+    addMarker(p);
+  });
+}
+
+function addMarker(p) {
+  if(!hMap) return;
+  const cat = CATS[p.cat];
+  const color = cat ? cat.color : '#888';
+  const icon = new H.map.Icon(svgDot(color, p.status==='visited'), {size:{w:14,h:14}});
+  const m = new H.map.Marker({lat:p.lat, lng:p.lng}, {icon, data:{id:p.id}});
+  m.addEventListener('tap', () => { focusPlace(p.id); });
+  hMap.addObject(m);
+  markers[p.id] = m;
+}
+
+function updateMarkerIcon(p) {
+  const m = markers[p.id];
+  if(!m || !hMap) return;
+  const cat = CATS[p.cat];
+  const color = cat ? cat.color : '#888';
+  m.setIcon(new H.map.Icon(svgDot(color, p.status==='visited'), {size:{w:14,h:14}}));
+}
+
+function removeMarker(id) {
+  const m = markers[id];
+  if(m && hMap) { hMap.removeObject(m); delete markers[id]; }
+}
+
+function drawRouteLine() {
+  if(!hMap) return;
+  const pts = [
+    {lat:37.7749,lng:-122.4194},{lat:36.27,lng:-121.81},
+    {lat:34.42,lng:-119.70},{lat:34.052,lng:-118.244},
+    {lat:33.873,lng:-115.90},{lat:36.115,lng:-115.173}
+  ];
+  const lineString = new H.geo.LineString();
+  pts.forEach(p => lineString.pushPoint(p));
+  hMap.addObject(new H.map.Polyline(lineString, {
+    style:{strokeColor:'rgba(232,93,4,0.45)',lineWidth:3,lineDash:[8,8]}
+  }));
+}
+
+// ═══════════════════════════════════════
+// FOCUS / INFO CARD
+// ═══════════════════════════════════════
+function focusPlace(id) {
+  const p = places.find(x=>x.id===id);
+  if(!p) return;
+  activeId = id;
+
+  if(hMap) hMap.setCenter({lat:p.lat,lng:p.lng}, true);
+  if(hMap) hMap.setZoom(14, true);
+
+  const cat = CATS[p.cat];
+  const cn = {SF:'San Francisco',LA:'Los Angeles',LV:'Las Vegas',ROAD:'Yol Üzeri'}[p.city]||p.city;
+  document.getElementById('mc-cat').textContent = cat ? cat.emoji+' '+cat.label : p.cat;
+  document.getElementById('mc-cat').style.color = cat ? cat.color : '#888';
+  document.getElementById('mc-name').textContent = p.name;
+  document.getElementById('mc-city').textContent = '📍 '+cn;
+  document.getElementById('mc-desc').textContent = p.desc;
+  const vb = document.getElementById('mc-v');
+  vb.textContent = p.status==='visited' ? '↩ Geri Al' : '✓ Gezildi';
+  vb.style.background = p.status==='visited' ? '#bbf7d0' : '#dcfce7';
+  document.getElementById('mapCard').classList.add('show');
+
+  // Highlight list
+  document.querySelectorAll('.pi').forEach(el=>el.classList.remove('active-item'));
+  const el=document.getElementById('pi-'+id);
+  if(el){el.classList.add('active-item');el.scrollIntoView({block:'nearest',behavior:'smooth'});}
+}
+
+function closeCard() { document.getElementById('mapCard').classList.remove('show'); activeId=null; }
+
+// ═══════════════════════════════════════
+// ROUTING
+// ═══════════════════════════════════════
+function calcRoute(mode) {
+  if(!router) { showToast('Harita yükleniyor, lütfen bekleyin'); return; }
+  const from = document.getElementById('dirFrom').value.trim();
+  const to = document.getElementById('dirTo').value.trim();
+  if(!from || !to) { showToast('Başlangıç ve varış noktası girin!'); return; }
+
+  showToast('🧭 Rota hesaplanıyor...');
+  clearRoute();
+
+  // Geocode both, then route
+  const geo = platform.getSearchService();
+  geo.geocode({q:from}, res=>{
+    const fp = res.items[0]?.position;
+    if(!fp){ showToast('Başlangıç noktası bulunamadı'); return; }
+    geo.geocode({q:to}, res2=>{
+      const tp = res2.items[0]?.position;
+      if(!tp){ showToast('Varış noktası bulunamadı'); return; }
+
+      router.calculateRoute({
+        transportMode: mode,
+        origin: `${fp.lat},${fp.lng}`,
+        destination: `${tp.lat},${tp.lng}`,
+        return: 'polyline,summary'
+      }, result => {
+        const route = result.routes[0];
+        if(!route){ showToast('Rota bulunamadı'); return; }
+
+        const lineString = H.geo.LineString.fromFlexiblePolyline(route.sections[0].polyline);
+        routingLayer = new H.map.Polyline(lineString, {
+          style:{strokeColor:'#2563eb',lineWidth:5,lineCap:'round'}
+        });
+        hMap.addObject(routingLayer);
+        hMap.getViewModel().setLookAtData({bounds: routingLayer.getBoundingBox()});
+
+        const dist = (route.sections[0].summary.length/1000).toFixed(1);
+        const dur = Math.round(route.sections[0].summary.duration/60);
+        showToast(`✅ ${dist} km · ${dur} dakika`);
+      }, err => showToast('Rota hatası: '+err));
+    }, err => showToast('Varış bulunamadı'));
+  }, err => showToast('Başlangıç bulunamadı'));
+}
+
+function clearRoute() {
+  if(routingLayer && hMap) { hMap.removeObject(routingLayer); routingLayer=null; }
+}
+
+function useMyLoc() {
+  if(!navigator.geolocation){ showToast('Konum desteklenmiyor'); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:lat, longitude:lng} = pos.coords;
+    document.getElementById('dirFrom').value = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if(hMap) { hMap.setCenter({lat,lng},true); hMap.setZoom(13,true); }
+    showToast('📍 Konumunuz bulundu!');
+  }, ()=>showToast('Konum alınamadı'));
+}
+
+function dirToActive() {
+  if(activeId===null) return;
+  const p=places.find(x=>x.id===activeId);if(!p)return;
+  document.getElementById('dirTo').value = p.name+', '+{SF:'San Francisco CA',LA:'Los Angeles CA',LV:'Las Vegas NV',ROAD:'California'}[p.city];
+  showToast('Varış noktası ayarlandı!');
+}
+
+function openGMActive() {
+  if(activeId===null) return;
+  const p=places.find(x=>x.id===activeId);if(!p)return;
+  window.open(`https://www.google.com/maps/search/${encodeURIComponent(p.name)}/@${p.lat},${p.lng},15z`,'_blank');
+}
+
+// ═══════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════
+function markV(id,e) {
+  if(e) e.stopPropagation();
+  const p=places.find(x=>x.id===id);if(!p)return;
+  p.status = p.status==='visited' ? 'pending' : 'visited';
+  updateMarkerIcon(p);
+  const el=document.getElementById('pi-'+id);
+  if(el){
+    el.className='pi '+(p.status)+' '+(el.classList.contains('active-item')?'active-item':'');
+    const b=el.querySelector('.vbadge');
+    if(p.status==='visited'&&!b) el.insertAdjacentHTML('beforeend','<div class="vbadge">✓</div>');
+    if(p.status!=='visited'&&b) b.remove();
+  }
+  if(activeId===id){
+    const vb=document.getElementById('mc-v');
+    vb.textContent=p.status==='visited'?'↩ Geri Al':'✓ Gezildi';
+    vb.style.background=p.status==='visited'?'#bbf7d0':'#dcfce7';
+  }
+  updateStats();
+  showToast(p.status==='visited'?'✅ Gezildi olarak işaretlendi':'↩ Geri alındı');
+}
+
+function markR(id,e) {
+  if(e) e.stopPropagation();
+  const p=places.find(x=>x.id===id);if(!p)return;
+  p.status='removed';
+  removeMarker(id);
+  const el=document.getElementById('pi-'+id);if(el) el.style.display='none';
+  if(activeId===id) closeCard();
+  updateStats();
+  showToast('🗑️ Listeden silindi');
+}
+
+function markVActive() { if(activeId!==null) markV(activeId); }
+function markRActive() { if(activeId!==null) { markR(activeId); closeCard(); } }
+
+function setDirTo(id,e) {
+  if(e) e.stopPropagation();
+  const p=places.find(x=>x.id===id);if(!p)return;
+  document.getElementById('dirTo').value = p.name+', '+{SF:'San Francisco CA',LA:'Los Angeles CA',LV:'Las Vegas NV',ROAD:'California'}[p.city];
+  showToast('📍 Varış: '+p.name);
+}
+
+// ═══════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════
+function setCF(city,btn) {
+  cityFilter=city;
+  document.querySelectorAll('#cityBtns .fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+function setVF(v) {
+  viewFilter=v;
+  ['all','pending','visited'].forEach(x=>document.getElementById('vf-'+x).classList.toggle('active',x===v));
+  renderList();
+}
+function toggleCat(cat) {
+  catFilters.has(cat)?catFilters.delete(cat):catFilters.add(cat);
+  document.querySelectorAll('.cchip').forEach(c=>{
+    if(c.dataset.cat===cat){c.classList.toggle('on',catFilters.has(cat));c.classList.toggle('off',!catFilters.has(cat));}
+  });
+  renderList();
+}
+
+// ═══════════════════════════════════════
+// RENDER LIST
+// ═══════════════════════════════════════
+function renderList() {
+  const q=document.getElementById('search').value.toLowerCase();
+  const filt=places.filter(p=>{
+    if(p.status==='removed') return false;
+    if(viewFilter==='pending'&&p.status!=='pending') return false;
+    if(viewFilter==='visited'&&p.status!=='visited') return false;
+    if(cityFilter!=='all'&&p.city!==cityFilter) return false;
+    if(!catFilters.has(p.cat)) return false;
+    if(q&&!p.name.toLowerCase().includes(q)&&!p.desc.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if(!filt.length){
+    document.getElementById('placeList').innerHTML='<div class="empty-msg">Sonuç bulunamadı</div>';
+    return;
+  }
+  const groups={};
+  const order=['SF','ROAD','LA','LV'];
+  const cnames={SF:'🌁 San Francisco',LA:'🌴 Los Angeles',LV:'🎰 Las Vegas',ROAD:'🛣️ Yol Üzeri'};
+  filt.forEach(p=>{if(!groups[p.city])groups[p.city]=[];groups[p.city].push(p);});
+  let html='';
+  order.forEach(city=>{
+    if(!groups[city])return;
+    html+=`<div class="grp-hdr"><span>${cnames[city]}</span><span class="grp-cnt">${groups[city].length}</span></div>`;
+    groups[city].forEach(p=>{
+      const cat=CATS[p.cat];const color=cat?cat.color:'#888';
+      html+=`<div class="pi ${p.status}" id="pi-${p.id}" onclick="focusPlace(${p.id})">
+        <div class="pdot" style="background:${color}"></div>
+        <div class="pinfo">
+          <div class="pname">${cat?cat.emoji:''} ${p.name}</div>
+          <div class="pmeta">${cat?cat.label:p.cat}</div>
+        </div>
+        <div class="pbtns">
+          <button class="pbtn v" onclick="markV(${p.id},event)" title="Gezildi">✓</button>
+          <button class="pbtn d" onclick="setDirTo(${p.id},event)" title="Yol tarifi">🧭</button>
+          <button class="pbtn r" onclick="markR(${p.id},event)" title="Sil">✗</button>
+        </div>
+        ${p.status==='visited'?'<div class="vbadge">✓</div>':''}
+      </div>`;
+    });
+  });
+  document.getElementById('placeList').innerHTML=html;
+}
+
+// ═══════════════════════════════════════
+// CHIPS & LEGEND & STATS
+// ═══════════════════════════════════════
+function renderChips() {
+  document.getElementById('catChips').innerHTML=Object.entries(CATS).map(([k,v])=>{
+    const cnt=places.filter(p=>p.cat===k&&p.status!=='removed').length;
+    return `<div class="cchip on" data-cat="${k}" style="background:${v.color}22;color:${v.color};border-color:${v.color}55" onclick="toggleCat('${k}')">${v.emoji} ${v.label} <b>${cnt}</b></div>`;
+  }).join('');
+}
+function renderLegend() {
+  document.getElementById('legend').innerHTML='<div class="leg-t">Kategoriler</div>'+
+    Object.entries(CATS).map(([k,v])=>`<div class="leg-i"><div class="leg-d" style="background:${v.color}"></div>${v.emoji} ${v.label}</div>`).join('')+
+    '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0"><div class="leg-i"><div class="leg-d" style="background:#22c55e;border:2px solid #22c55e"></div>✓ Gezildi</div></div>';
+}
+function updateStats() {
+  document.getElementById('s-total').textContent=places.filter(p=>p.status!=='removed').length;
+  document.getElementById('s-visited').textContent=places.filter(p=>p.status==='visited').length;
+  document.getElementById('s-removed').textContent=places.filter(p=>p.status==='removed').length;
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  renderChips();
+  renderLegend();
+  renderList();
+  updateStats();
+  initHere();
+});
+</script>
+</body>
+</html>
